@@ -91,6 +91,7 @@ class TTS(commands.Cog):
   @commands.command()
   async def kill(self, ctx: commands.Context):
     if ctx.voice_client:
+      queues.pop(ctx.voice_client.channel.id) # type: ignore
       await ctx.voice_client.disconnect(force=False)
   
   @commands.command()
