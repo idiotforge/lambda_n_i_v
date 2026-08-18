@@ -12,8 +12,7 @@ async def on_message(bot: discord.Client, msg: discord.Message):
     if emoji:
       await msg.add_reaction(emoji)
   elif 'lambdaniv' in msg.content:
-    await msg.reply(text_model.make_sentence())
+    await msg.reply(text_model.make_short_sentence(max_chars=120, tries=10000))
   elif counter <= 0:
     counter = 5
-    await msg.reply(text_model.make_sentence())
-    
+    #await msg.reply(text_model.make_sentence())

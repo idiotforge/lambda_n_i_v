@@ -1,9 +1,11 @@
 import requests, base64, random, pathlib, discord, asyncio, os, sqlite3
 from discord.ext import commands
+from discord.types import voice
 from apitokens import *
 from .constants import *
 from .hardcoded import *
 from .util import *
+import json
 
 
 def tts(req_text: str, text_speaker: str = "en_us_001",
@@ -54,9 +56,10 @@ class TikTokVoice():
     os.remove(self.filename)
 
 class TTSQueue():
-  def __init__(self, client):
-    self.client = client
-  client: discord.VoiceClient
+  def __init__(self, guild):
+    self.guild = guild
+    self.guild.voice_client.on_voice_state_update = on_voice_state_update
+  guild: discord.Guild
   playing = False
   voices = []
   def push_voice(self, voice):
@@ -68,21 +71,29 @@ class TTSQueue():
     self.voices = self.voices[1:]
   def _playnext(self):
     self.playing = False
-    self.client.stop()
+    self.guild.voice_client.stop() # type: ignore
     self.pop_voice()
     self.play()
+  def dispose(self):
+    for voice in self.voices:
+      voice.dispose()
+    self.voices.clear()
   def play(self):
+    print("wh")
     if self.playing:
       return
+    print('whs')
     if len(self.voices) <= 0:
+      return
+    print('ou shi')
+    if type(self.guild.voice_client) is not discord.VoiceClient:
       return
     source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(source=self.voices[0].filename, executable='ffmpeg'))
     self.playing = True
-    self.client.play(source, after=lambda e: self._playnext())
+    self.guild.voice_client.play(source, after=lambda e: self._playnext())
 
 global queues
 queues: dict[int, TTSQueue] = {}
-    
 
 class TTS(commands.Cog):
   def __init__(self, bot):
@@ -91,7 +102,6 @@ class TTS(commands.Cog):
   @commands.command()
   async def kill(self, ctx: commands.Context):
     if ctx.voice_client:
-      queues.pop(ctx.voice_client.channel.id) # type: ignore
       await ctx.voice_client.disconnect(force=False)
   
   @commands.command()
@@ -99,7 +109,9 @@ class TTS(commands.Cog):
     if ctx.voice_client is None:
         if ctx.author.voice: # type: ignore
           await ctx.author.voice.channel.connect() # type: ignore
-          queues[ctx.author.voice.channel.id] = TTSQueue(ctx.voice_client) # type: ignore
+          print(f'created queue for guild id {ctx.guild.id}') # type: ignore
+          queues[ctx.guild.id] = TTSQueue(ctx.guild) # type: ignore
+          await ctx.message.reply('yo waddup')
         else:
           await ctx.message.reply('hey idiot have you tried joining a vc first?')
   
@@ -114,20 +126,37 @@ class TTS(commands.Cog):
       user_preference[ctx.author.id] = voice
       await ctx.message.reply(f'set your voice to `{voice}`')
     else:
-      await ctx.message.reply(f'invalid voice`')
+      await ctx.message.reply('invalid voice')
+  @commands.command()
+  async def skip(self, ctx: commands.Context):
+    pass
+    
     
 async def on_message(bot: discord.Client, message: discord.Message):
   if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
     return
   if message.content.startswith(('$', 'λ')):
     return
-  queue: TTSQueue | None = queues.get(message.channel.id, None)
-  if queue:
-    txt = message.clean_content.strip()
-    attachments = message.attachments
-    stickers = message.stickers
-    txt = await textGoodizer(txt, attachments, stickers)
-    if txt != '':
-      voice = user_preference.get(message.author.id, 'en_us_001')
-      queue.push_voice(TikTokVoice(txt, voice))
-      queue.play()
+  if message.guild:
+    if message.guild.voice_client.channel.id == message.channel.id: #type: ignore
+      queue = queues.get(message.guild.id, None)
+      if queue:
+        txt = message.clean_content.strip()
+        attachments = message.attachments
+        stickers = message.stickers
+        txt = await textGoodizer(txt, attachments, stickers)
+        if txt != '':
+          voice = user_preference.get(message.author.id, 'en_us_001')
+          queue.push_voice(TikTokVoice(txt, voice))
+          queue.play()
+# async def on_voice_state_update(bot: discord.Client, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+#   if member.id == bot.user.id: # type: ignore
+#     if before.channel is not None and after.channel is None:
+#       # on disconnect
+#       queues.pop(member.guild.id).dispose()
+#       print(f'cleared guild {member.guild.id}')
+async def on_voice_state_update(data: voice.GuildVoiceState):
+  #on disconnect
+  if data.get('channel_id') is None:
+    queues.pop(int(data.get('guild_id'))).dispose() # type: ignore
+    print(f'cleared guild {data.get('guild_id')}')

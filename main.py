@@ -1,5 +1,3 @@
-# This example requires the 'message_content' privileged intent to function.
-
 import discord, asyncio
 from discord.ext import commands 
 from apitokens import *
@@ -14,6 +12,8 @@ class dumbBot(commands.Bot):
     await tts.on_message(self, message)
     await aniv.on_message(self, message)
     await super().on_message(message)
+  # async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+  #   await tts.on_voice_state_update(self, member, before, after)
     
 intents = discord.Intents.default()
 intents.message_content = True
