@@ -1,0 +1,4 @@
+emoji
+markovify
+requests
+discord.py[voice]
