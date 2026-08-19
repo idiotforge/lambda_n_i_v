@@ -33,4 +33,4 @@ async def textGoodizer(txt: str, attachments: list[discord.Attachment], stickers
     return txt + ' ' + attachments[0].filename
   elif len(attachments) != 0:
     return txt + ' with multiple files'
-  return txt
+  return txt + '.'
