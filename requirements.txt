@@ -2,4 +2,4 @@ emoji
 markovify
 requests
 py-cord[voice]
-youtube_dl
+yt-dlp
