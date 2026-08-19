@@ -10,8 +10,9 @@ def setup(bot: discord.Bot):
       return
     if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
       return
-    if 'aniv' in message.content:
-      if 'nice one' in message.content or 'good one' in message.content:
+    teststring = message.content.lower()
+    if 'aniv' in teststring:
+      if 'nice one' in teststring or 'good one' in teststring:
         emoji = bot.get_emoji(1539305128920748042)
         if emoji:
           await message.add_reaction(emoji)
