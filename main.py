@@ -5,15 +5,12 @@ import tts.main as tts
 import aniv.main as aniv
 from typing import Optional
 
-class dumbBot(commands.Bot):
-  async def on_message(self, message: discord.Message):
-    if message.author == self.user:
-      return
-    await tts.on_message(self, message)
-    await aniv.on_message(self, message)
-    await super().on_message(message)
-  # async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-  #   await tts.on_voice_state_update(self, member, before, after)
+class MainCog(commands.Cog):
+  def __init__(self, bot):
+    self.bot = bot
+
+class DumbBot(commands.Bot):
+  pass
     
 intents = discord.Intents.default()
 intents.message_content = True
@@ -28,7 +25,7 @@ class WorseHelpCommand(commands.HelpCommand):
 - kill: leaves vc
 """)
 
-bot = dumbBot(
+bot = DumbBot(
   command_prefix=commands.when_mentioned_or('$', 'λ'),
   description='nothing ever happens',
   intents=intents,
@@ -43,7 +40,9 @@ async def on_ready():
 
 async def main():
   async with bot:
-    await bot.add_cog(tts.TTS(bot))
+    bot.add_cog(MainCog(bot))
+    bot.load_extension('tts.main')
+    bot.load_extension('aniv.main')
     await bot.start(DISCORD_TOKEN)
 
 

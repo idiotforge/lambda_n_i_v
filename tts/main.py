@@ -1,12 +1,12 @@
 import requests, base64, random, pathlib, discord, asyncio, os, sqlite3
 from discord.ext import commands
 from discord.types import voice
+from discord import voice
 from apitokens import *
 from .constants import *
 from .hardcoded import *
 from .util import *
 import json
-
 
 def tts(req_text: str, text_speaker: str = "en_us_001",
     filename: str = 'voice.mp3'):
@@ -58,7 +58,6 @@ class TikTokVoice():
 class TTSQueue():
   def __init__(self, guild):
     self.guild = guild
-    self.guild.voice_client.on_voice_state_update = on_voice_state_update
   guild: discord.Guild
   playing = False
   voices = []
@@ -71,7 +70,9 @@ class TTSQueue():
     self.voices = self.voices[1:]
   def _playnext(self):
     self.playing = False
-    self.guild.voice_client.stop() # type: ignore
+    if self.guild.voice_client is None:
+      return
+    self.guild.voice_client.stop()
     self.pop_voice()
     self.play()
   def dispose(self):
@@ -86,7 +87,7 @@ class TTSQueue():
     if len(self.voices) <= 0:
       return
     print('ou shi')
-    if type(self.guild.voice_client) is not discord.VoiceClient:
+    if self.guild.voice_client is None:
       return
     source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(source=self.voices[0].filename, executable='ffmpeg'))
     self.playing = True
@@ -131,32 +132,36 @@ class TTS(commands.Cog):
   async def skip(self, ctx: commands.Context):
     pass
     
-    
-async def on_message(bot: discord.Client, message: discord.Message):
-  if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
-    return
-  if message.content.startswith(('$', 'λ')):
-    return
-  if message.guild:
-    if message.guild.voice_client.channel.id == message.channel.id: #type: ignore
-      queue = queues.get(message.guild.id, None)
-      if queue:
-        txt = message.clean_content.strip()
-        attachments = message.attachments
-        stickers = message.stickers
-        txt = await textGoodizer(txt, attachments, stickers)
-        if txt != '':
-          voice = user_preference.get(message.author.id, 'en_us_001')
-          queue.push_voice(TikTokVoice(txt, voice))
-          queue.play()
-# async def on_voice_state_update(bot: discord.Client, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-#   if member.id == bot.user.id: # type: ignore
-#     if before.channel is not None and after.channel is None:
-#       # on disconnect
-#       queues.pop(member.guild.id).dispose()
-#       print(f'cleared guild {member.guild.id}')
-async def on_voice_state_update(data: voice.GuildVoiceState):
-  #on disconnect
-  if data.get('channel_id') is None:
-    queues.pop(int(data.get('guild_id'))).dispose() # type: ignore
-    print(f'cleared guild {data.get('guild_id')}')
+def setup(bot: discord.Bot):
+  print('loading module tts')
+  bot.add_cog(TTS(bot))
+  @bot.listen()
+  async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if member.id == bot.user.id: # type: ignore
+      if before.channel is not None and after.channel is None:
+        # on disconnect
+        queues.pop(member.guild.id).dispose()
+        print(f'cleared guild {member.guild.id}')
+  @bot.listen()
+  async def on_message(message: discord.Message):
+    if message.author == bot.user:
+      return
+    if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
+      return
+    if message.content.startswith(('$', 'λ', '.')):
+      return
+    if len(message.content) >= 300:
+      return
+    if message.guild:
+      if message.guild.voice_client:
+        if message.guild.voice_client.channel.id == message.channel.id:
+          queue = queues.get(message.guild.id, None)
+          if queue:
+            txt = message.clean_content.strip()
+            attachments = message.attachments
+            stickers = message.stickers
+            txt = await textGoodizer(txt, attachments, stickers)
+            if txt != '':
+              voice = user_preference.get(message.author.id, 'en_us_001')
+              queue.push_voice(TikTokVoice(txt, voice))
+              queue.play()
