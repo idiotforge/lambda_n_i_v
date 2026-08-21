@@ -17,12 +17,14 @@ intents.message_content = True
 class WorseHelpCommand(commands.HelpCommand):
   async def command_callback(self, ctx: commands.Context, /, *, command: Optional[str] = None) -> None:
     await ctx.message.reply("""
-## `commands start with $ or λ`
-- help: print this list
-- voice (voice_name): sets the voice
-- voicelist: lists all voices
-- join: joins ur current vc
-- kill: leaves vc
+## `commands`
+> -# start with $ or λ
+> - help : i wonder what that does!
+> - voice (voice name): sets your voice
+> - voicelist: lists all available voice names
+> - tempo/pitch/speed (∈[0.5;3]): change how your voice sounds
+> - join: joins your current vc
+> - kill: leaves vc
 """)
 
 bot = DumbBot(

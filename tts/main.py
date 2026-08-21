@@ -1,18 +1,20 @@
-import requests, base64, random, pathlib, discord, asyncio, os, sqlite3, json, yt_dlp
+import requests, base64, random, pathlib, discord, asyncio, os, sqlite3, json, yt_dlp, typing
 from discord.ext import commands
 from discord.types import voice
 from discord import voice
 from apitokens import *
 from .constants import *
 from .hardcoded import *
-from .util import *
+from .text_util import *
+from util import *
 from queue import Queue
 
 def tts(req_text: str, text_speaker: str = "en_us_001",
     filename: str = 'voice.mp3'):
+  req_text = req_text.replace("&", "and")
+  req_text = req_text.replace("#", "hashtag")
   req_text = req_text.replace("+", "plus")
   req_text = req_text.replace(" ", "+")
-  req_text = req_text.replace("&", "and")
   req_text = req_text.replace("ä", "ae")
   req_text = req_text.replace("ö", "oe")
   req_text = req_text.replace("ü", "ue")
@@ -57,12 +59,13 @@ ytdl = yt_dlp.YoutubeDL(params={
 })
 
 class VoicePreference:
-  voice_index = 13
-  tempo = 1.0
-  pitch = 1.0
+  def __init__(self) -> None:
+    self.voice_index = 13
+    self.tempo = 1.0
+    self.pitch = 1.0
   def gen_ffmpeg_options(self) -> str:
-    if self.pitch != 1.0:
-      return f'-filter:a "asetrate={24000*self.pitch},aresample=24000"'
+    if self.pitch != 1.0 or self.tempo != 1.0:
+      return f'-af "asetrate=24000*{self.pitch},atempo={self.tempo / self.pitch},aresample=24000"'
     return ''
   
     
@@ -93,9 +96,9 @@ class TikTokVoice(AudioSource):
   ffmpeg_options : str
   def __init__(self, text: str, voice: VoicePreference):
     self.ffmpeg_options = voice.gen_ffmpeg_options()
-    attempt_hardcoded = text.replace(' ', '')
-    if attempt_hardcoded in hardcoded:
-      self.filename = 'tts/hardcoded/' + attempt_hardcoded + '.ogg'
+    hardcoded_file = attempt_hardcoded(text)
+    if hardcoded_file:
+      self.filename = 'tts/hardcoded/' + hardcoded_file + '.ogg'
     else:
       self.filename = 'tts/temp/temp_' + str(random.randrange(0, 99999999)) + '.mp3'
       tts(text, voice_list[voice.voice_index], self.filename)
@@ -164,7 +167,16 @@ class TTSQueue():
 
 global queues
 queues: dict[int, TTSQueue] = {}
-
+async def join_vc(bot: discord.Bot, message: discord.Message):
+  if message.guild:
+    if message.guild.voice_client is None:
+        if type(message.author) is discord.Member and message.author.voice and message.author.voice.channel:
+          await message.author.voice.channel.connect()
+          print(f'created queue for guild id {message.guild.id}')
+          queues[message.guild.id] = TTSQueue(message.guild)
+          await message.add_reaction('✅')
+        else:
+          await message.reply('hey idiot have you tried joining a vc first?')
 class TTS(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
@@ -176,15 +188,7 @@ class TTS(commands.Cog):
   
   @commands.command()
   async def join(self, ctx: commands.Context):
-    if ctx.guild:
-      if ctx.guild.voice_client is None:
-          if type(ctx.author) is discord.Member and ctx.author.voice and ctx.author.voice.channel:
-            await ctx.author.voice.channel.connect()
-            print(f'created queue for guild id {ctx.guild.id}')
-            queues[ctx.guild.id] = TTSQueue(ctx.guild)
-            await ctx.message.reply('yo waddup')
-          else:
-            await ctx.message.reply('hey idiot have you tried joining a vc first?')
+    await join_vc(self, ctx.message)
   
   @commands.command()
   async def voicelist(self, ctx: commands.Context):
@@ -201,14 +205,31 @@ class TTS(commands.Cog):
       await ctx.message.reply(f'set your voice to `{voice}`')
     else:
       await ctx.message.reply('invalid voice')
-  @commands.command()
-  async def speed(self, ctx: commands.Context, *, _spd):
-    spd = float(_spd) or 1.0
+  
+  async def _set_float(self, ctx: commands.Context, _val, names: list[str]):
+    val: float
+    try:
+      val = float(_val) or 1.0
+    except ValueError:
+      await ctx.message.reply('numbers please!')
+      return
     if ctx.author.id not in user_preference:
       user_preference[ctx.author.id] = VoicePreference()
-    user_preference[ctx.author.id].tempo = spd
-    user_preference[ctx.author.id].pitch = spd
-    await ctx.message.reply(f'set your speed to `{spd}`')
+    reply = "set "
+    for name in names:
+      setattr(user_preference[ctx.author.id], name, val)
+      reply += name + ', '
+    reply = reply[:-2] + f' to `{val}`'
+    await ctx.message.reply(reply)
+  @commands.command()
+  async def speed(self, ctx: commands.Context, *, _val):
+    await self._set_float(ctx, _val, ['pitch', 'tempo'])
+  @commands.command()
+  async def pitch(self, ctx: commands.Context, *, _val):
+    await self._set_float(ctx, _val, ['pitch'])
+  @commands.command()
+  async def tempo(self, ctx: commands.Context, *, _val):
+    await self._set_float(ctx, _val, ['tempo'])
     
   @commands.command()
   async def skip(self, ctx: commands.Context):
@@ -230,13 +251,7 @@ def setup(bot: discord.Bot):
         print(f'cleared guild {before.channel.guild.id}')
   @bot.listen()
   async def on_message(message: discord.Message):
-    if message.author == bot.user:
-      return
-    if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
-      return
-    if message.content.startswith(('$', 'λ', '.')):
-      return
-    if len(message.content) >= 300:
+    if not is_message_valid(bot, message) or len(message.content) >= 300:
       return
     if message.guild:
       if message.guild.voice_client:
@@ -244,7 +259,7 @@ def setup(bot: discord.Bot):
           queue = queues.get(message.guild.id, None)
           if queue:
             txt = message.clean_content.strip()
-            if 'https://www.youtube.com/watch?v=' in message.content:
+            if 'youtube.com/watch?v=' in message.content or 'youtu.be/' in message.content:
               url = message.content.split()[0]
               queue.put_voice(YTDLSource(url))
               await queue.play()
@@ -256,3 +271,7 @@ def setup(bot: discord.Bot):
                 voice = user_preference.get(message.author.id, VoicePreference())
                 queue.put_voice(TikTokVoice(txt, voice))
                 await queue.play()
+      else:
+        test_string = message.content.lower()
+        if 'aniv' in test_string and 'hop on' in test_string:
+          await join_vc(bot, message)
