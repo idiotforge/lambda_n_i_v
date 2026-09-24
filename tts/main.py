@@ -163,7 +163,6 @@ class TTSQueue():
       if self.source:
         self.playing = True
         self.guild.voice_client.play(self.source, after=lambda e: self._playnext())
-  
 
 global queues
 queues: dict[int, TTSQueue] = {}
@@ -183,8 +182,9 @@ class TTS(commands.Cog):
 
   @commands.command()
   async def kill(self, ctx: commands.Context):
-    if ctx.voice_client:
-      await ctx.voice_client.disconnect(force=False)
+    if ctx.guild and ctx.guild.voice_client:
+      print(f'killing guild: {ctx.guild.id}')
+      await ctx.guild.voice_client.disconnect(force=True)
   
   @commands.command()
   async def join(self, ctx: commands.Context):
@@ -242,13 +242,14 @@ class TTS(commands.Cog):
 def setup(bot: discord.Bot):
   print('loading module tts')
   bot.add_cog(TTS(bot))
+  def clear_queue(guildid):
+    queues.pop(guildid).dispose()
+    print(f'cleared queue guild: {guildid}')
   @bot.listen()
   async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    if member.id == bot.user.id: # type: ignore
+    if member and bot.user and member.id == bot.user.id:
       if before.channel is not None and after.channel is None:
-        # on disconnect
-        queues.pop(before.channel.guild.id).dispose()
-        print(f'cleared guild {before.channel.guild.id}')
+        clear_queue(before.channel.guild.id)
   @bot.listen()
   async def on_message(message: discord.Message):
     if not is_message_valid(bot, message) or len(message.content) >= 300:
