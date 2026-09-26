@@ -22,7 +22,7 @@ class WorseHelpCommand(commands.HelpCommand):
 > - help : i wonder what that does!
 > - voice (voice name): sets your voice
 > - voicelist: lists all available voice names
-> - tempo/pitch/speed (∈[0.5;3]): change how your voice sounds
+> - tempo/pitch/speed: change how your voice sounds
 > - join: joins your current vc
 > - kill: leaves vc
 """)

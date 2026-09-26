@@ -4,7 +4,7 @@ def attempt_hardcoded(text: str) -> str | None:
   test_string = text.replace(' ', '')[:-1]
   
   if test_string == 'INTERLOPE':
-    return 'interlope' + str(random.randrange(1, 5))
+    return 'interlope' + str(random.randrange(1, 6))
   
   test_string = test_string.lower()
   

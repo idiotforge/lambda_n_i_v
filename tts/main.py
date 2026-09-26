@@ -64,7 +64,7 @@ class VoicePreference:
     self.tempo = 1.0
     self.pitch = 1.0
   def gen_ffmpeg_options(self) -> str:
-    if self.pitch != 1.0 or self.tempo != 1.0:
+    if (self.pitch != 1.0 or self.tempo != 1.0) and self.pitch != 0:
       return f'-af "asetrate=24000*{self.pitch},atempo={self.tempo / self.pitch},aresample=24000"'
     return ''
   
@@ -128,6 +128,7 @@ class TTSQueue():
       self.current_voice = None
     self.current_voice = self.voices.get()
   def skip(self):
+    print("debug: skip")
     self.playing = False
     self.dispose_source()
     if self.guild.voice_client:
@@ -141,6 +142,7 @@ class TTSQueue():
     if self.source:
       self.source.cleanup()
   def _playnext(self):
+    print("debug: playnext")
     if self.guild.voice_client:
       self.guild.voice_client.stop()
     self.dispose_source()
@@ -149,8 +151,10 @@ class TTSQueue():
     self.playing = False
     asyncio.run(self.play())
   def dispose(self):
+    print("debug: disposing")
     self.skip()
   async def play(self):
+    print("debug: attempt play")
     if self.playing:
       return
     if self.voices.empty():
@@ -170,6 +174,7 @@ async def join_vc(bot: discord.Bot, message: discord.Message):
   if message.guild:
     if message.guild.voice_client is None:
         if type(message.author) is discord.Member and message.author.voice and message.author.voice.channel:
+          print("debug: join vc")
           await message.author.voice.channel.connect()
           print(f'created queue for guild id {message.guild.id}')
           queues[message.guild.id] = TTSQueue(message.guild)
@@ -182,6 +187,7 @@ class TTS(commands.Cog):
 
   @commands.command()
   async def kill(self, ctx: commands.Context):
+    print("debug: attempt kill")
     if ctx.guild and ctx.guild.voice_client:
       print(f'killing guild: {ctx.guild.id}')
       await ctx.guild.voice_client.disconnect(force=True)
