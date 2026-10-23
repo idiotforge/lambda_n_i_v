@@ -88,7 +88,7 @@ public class YTSource(string url) : TTSSource
   {
     var ytdlp = Process.Start(new ProcessStartInfo
     {
-      FileName = "./yt-dlp.exe",
+      FileName = "./yt-dlp",
       ArgumentList =
       {
         "-o", "-",
