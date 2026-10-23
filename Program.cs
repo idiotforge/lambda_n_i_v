@@ -21,7 +21,6 @@ namespace Lambdaniv;
 
 internal class Program
 {
-  [RequiresUnreferencedCode("Calls NetCord.Hosting.Services.ServicesHostExtensions.AddModules(Assembly)")]
   static async Task Main(string[] args)
   {
     var builder = Host.CreateApplicationBuilder(args);
