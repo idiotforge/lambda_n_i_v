@@ -13,7 +13,7 @@ using static System.Net.Mime.MediaTypeNames;
 namespace Lambdaniv.TTS;
 public class TTSSource
 {
-  public virtual async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output)
+  public virtual async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
     return null;
   }
@@ -21,12 +21,12 @@ public class TTSSource
 public class FileSource(string filename) : TTSSource
 {
   public readonly string Filename = filename;
-  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output)
+  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
     return FFMpegArguments.FromFileInput(Filename).OutputToPipe(new StreamPipeSink(output), options => options
     .ForceFormat("s16le")
     .WithAudioSamplingRate(48000)
-    .WithCustomArgument("-ac 2"));
+    .WithCustomArgument("-ac 2")).CancellableThrough(cancellationToken);
   }
 }
 public class TikTokSource : TTSSource
@@ -46,7 +46,7 @@ public class TikTokSource : TTSSource
     url = $"{TTSConfig.ApiUrl}?text_speaker={up.VoiceName}&req_text={text}&speaker_map_type=0&aid=1233";
   }
 
-  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output)
+  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
     using var client = new HttpClient();
     client.DefaultRequestHeaders.Add("User-Agent", TTSConfig.UserAgent);
@@ -73,7 +73,7 @@ public class TikTokSource : TTSSource
           }
           options.ForceFormat("s16le").WithCustomArgument("-ac 2");
         }
-      );
+      ).CancellableThrough(cancellationToken);
     }
     catch
     {
@@ -84,7 +84,7 @@ public class TikTokSource : TTSSource
 public class YTSource(string url) : TTSSource
 {
   private readonly string url = url;
-  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output)
+  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
     var ytdlp = Process.Start(new ProcessStartInfo
     {
@@ -96,11 +96,14 @@ public class YTSource(string url) : TTSSource
       },
       RedirectStandardOutput = true
     });
-    //var stream = new MemoryStream();
-    //ytdlp.StandardOutput.BaseStream.CopyTo(stream);
+    if (ytdlp == null)
+    {
+      return null;
+    }
+    cancellationToken.Register(() => ytdlp.Kill());
     return FFMpegArguments.FromPipeInput(new StreamPipeSource(ytdlp.StandardOutput.BaseStream)).OutputToPipe(new StreamPipeSink(output), options => options
       .ForceFormat("s16le")
       .WithAudioSamplingRate(48000)
-      .WithCustomArgument("-ac 2"));
+      .WithCustomArgument("-ac 2")).CancellableThrough(cancellationToken);
   }
 }

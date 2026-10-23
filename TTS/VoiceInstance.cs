@@ -41,10 +41,9 @@ internal sealed class VoiceInstance(VoiceClient client) : IDisposable
       VoiceChannels.Stereo,
       OpusApplication.Audio
       );
-    var ffmpeg = await source.GetFFMpegArgs(opusEncodeStream);
+    var ffmpeg = await source.GetFFMpegArgs(opusEncodeStream, cancellationToken);
     if (ffmpeg is not null)
     {
-      ffmpeg.CancellableThrough(cancellationToken);
       try
       {
         await ffmpeg.ProcessAsynchronously();
