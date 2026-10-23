@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Lambdaniv.TTS;
+
 public class TTSCommands : CommandModule<CommandContext>
 {
   static ConcurrentDictionary<ulong, VoiceInstance> voiceInstances = [];

@@ -15,11 +15,13 @@ using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
 using System.Buffers.Text;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 namespace Lambdaniv;
 
 internal class Program
 {
+  [RequiresUnreferencedCode("Calls NetCord.Hosting.Services.ServicesHostExtensions.AddModules(Assembly)")]
   static async Task Main(string[] args)
   {
     var builder = Host.CreateApplicationBuilder(args);
@@ -31,10 +33,10 @@ internal class Program
         )
         .AddCommands(options =>
         options.Prefixes = ["$", "λ"]
-        ).AddGatewayHandler(typeof(MessageCreateHandler));
+        ).AddGatewayHandler<MessageCreateHandler>();
     TTSConfig.TikTokToken = builder.Configuration.GetValue<string>("Lambdaniv:TikTokToken")!;
     var host = builder.Build();
-    host.AddModules(typeof(TTSCommands).Assembly);
+    host.AddCommandModule<TTSCommands>();
     await host.RunAsync();
   }
 }
