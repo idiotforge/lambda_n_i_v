@@ -59,7 +59,7 @@ public class TTSCommands : CommandModule<CommandContext>
         Logger = new ConsoleLogger(),
       });
     }
-    catch
+    catch (TimeoutException)
     {
       voiceInstances.TryRemove(item: new(guildId, null));
 
@@ -72,10 +72,6 @@ public class TTSCommands : CommandModule<CommandContext>
 
     if (!voiceInstances.TryUpdate(guildId, voiceInstance, null))
     {
-      // This should never happen with the example code,
-      // but we'll handle it just in case someone modifies
-      // it in a way that could cause it to happen
-
       voiceInstance.Dispose();
 
       await Context.Client.UpdateVoiceStateAsync(new(guildId, null));

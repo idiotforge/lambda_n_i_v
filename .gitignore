@@ -132,3 +132,7 @@ $RECYCLE.BIN/
 
 _NCrunch*
 appsettings.production.json
+yt-dlp.exe
+libdave.dll
+libsodium.dll
+opus.dll
