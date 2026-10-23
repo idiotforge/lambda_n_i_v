@@ -1,6 +1,0 @@
-emoji
-markovify
-requests
-py-cord[voice]
-yt-dlp
-yt-dlp-ejs
