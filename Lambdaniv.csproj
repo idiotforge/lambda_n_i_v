@@ -30,11 +30,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Aniv\textmodel.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="appsettings.production.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TTS\data-by-emoji.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -130,7 +130,7 @@ public class TTSCommands : CommandModule<CommandContext>
     Play(guildId, new FileSource(TTSConfig.SoundFolder + "test.mp3"));
   }
   [Command("play")]
-  public async void PlayFile()
+  public async void PlayFile(string url = "")
   {
     if (Context.Guild is not { } guild)
     {
@@ -139,11 +139,17 @@ public class TTSCommands : CommandModule<CommandContext>
     }
     
     ulong guildId = guild.Id;
+    if (url.StartsWith("https"))
+    {
+      Play(guildId, new WebSource(url));
+      return;
+    }
     if (Context.Message.Attachments.Count > 0)
     {
       if (Context.Message.Attachments[0].ContentType?.StartsWith("audio") == true)
       {
-        Play(guildId, new FileSource(Context.Message.Attachments[0].Url));
+        Play(guildId, new WebSource(Context.Message.Attachments[0].ProxyUrl));
+        return;
       }
     }
   }

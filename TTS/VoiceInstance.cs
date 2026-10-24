@@ -1,4 +1,5 @@
-﻿using NetCord.Gateway.Voice;
+﻿using FFMpegCore.Exceptions;
+using NetCord.Gateway.Voice;
 using NetCord.Services;
 using System.Diagnostics;
 
@@ -51,6 +52,10 @@ internal sealed class VoiceInstance(VoiceClient client) : IDisposable
       }
       catch (Exception ex)
       {
+        if (ex is FFMpegException)
+        {
+          return;
+        }
         if (ex is not OperationCanceledException and not AggregateException { InnerException: OperationCanceledException })
         {
           throw;

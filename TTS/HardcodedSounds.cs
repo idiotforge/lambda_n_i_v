@@ -21,9 +21,11 @@ internal static class HardcodedSounds
       "luigi house but it mansion" => "luigihousebutitmansion.ogg",
       "pacman" => "pacman.ogg",
       "proceed" => "weird.ogg",
-      "interlope" => "interlope" + (Random.Shared.Next() % 5 + 1) + ".ogg",
+      "interlope" => $"interlope{Random.Shared.Next() % 5 + 1}.ogg",
       "dawnfinder" or "lawnfinder" => "dawnfinder.ogg",
       "android in the bios" => "androidinthebios.ogg",
+      "press pp button now" => "ppbutton.ogg",
+      "q" => "cat_meow.ogg",
       _ => string.Empty,
     };
   } 

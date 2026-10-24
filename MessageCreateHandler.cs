@@ -1,4 +1,5 @@
 ﻿using Lambdaniv.TTS;
+using Lambdaniv.Aniv;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
@@ -17,9 +18,14 @@ public class MessageCreateHandler() : IMessageCreateGatewayHandler
     }
     try
     {
-      if (guild.GetCurrentUserVoiceStateAsync().Result.ChannelId == message.ChannelId)
+      if (message.IsValid())
       {
-        if (message.IsValid())
+        if (message.Content == "aniv")
+        {
+          message.ReplyAsync(AnivModel.MakeString());
+          return default;
+        }
+        if (guild.GetCurrentUserVoiceStateAsync().Result.ChannelId == message.ChannelId)
         {
           string hardcoded = HardcodedSounds.GetHardcodedFile(message.Content);
           if (hardcoded != string.Empty)

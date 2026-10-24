@@ -1,17 +1,9 @@
 ﻿using FFMpegCore;
-using FFMpegCore.Enums;
 using FFMpegCore.Pipes;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Lambdaniv.TTS;
-public class TTSSource
+public abstract class TTSSource
 {
   public virtual async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
@@ -20,13 +12,29 @@ public class TTSSource
 }
 public class FileSource(string filename) : TTSSource
 {
-  public readonly string Filename = filename;
   public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
   {
-    return FFMpegArguments.FromFileInput(Filename).OutputToPipe(new StreamPipeSink(output), options => options
+    return FFMpegArguments.FromFileInput(filename).OutputToPipe(new StreamPipeSink(output), options => options
     .ForceFormat("s16le")
     .WithAudioSamplingRate(48000)
     .WithCustomArgument("-ac 2")).CancellableThrough(cancellationToken);
+  }
+}
+public class WebSource(string url) : TTSSource
+{
+  public override async Task<FFMpegArgumentProcessor?> GetFFMpegArgs(Stream output, CancellationToken cancellationToken)
+  {
+    try
+    {
+      return FFMpegArguments.FromUrlInput(new Uri(url)).OutputToPipe(new StreamPipeSink(output), options => options
+      .ForceFormat("s16le")
+      .WithAudioSamplingRate(48000)
+      .WithCustomArgument("-ac 2")).CancellableThrough(cancellationToken);
+    }
+    catch (Exception)
+    {
+      return null;
+    }
   }
 }
 public class TikTokSource : TTSSource
@@ -39,6 +47,8 @@ public class TikTokSource : TTSSource
     text = text
       .Replace("+", "plus")
       .Replace(' ', '+')
+      .Replace('/', '+')
+      .Replace('\\', '+')
       .Replace("&", "and")
       .Replace("#", "hashtag");
     pitch = up.Pitch;
@@ -53,8 +63,8 @@ public class TikTokSource : TTSSource
     client.DefaultRequestHeaders.Add("Cookie", $"sessionid={TTSConfig.TikTokToken}");
     try
     {
-      using var response = await client.PostAsync(url, null);
-      string responseJson = await response.Content.ReadAsStringAsync();
+      using var response = await client.PostAsync(url, null, cancellationToken);
+      string responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
       // i hate json so im just getting the data string by hand lol
       int startIndex = responseJson.IndexOf("v_str") + 8;
       int length = responseJson.IndexOf('"', startIndex) - startIndex;

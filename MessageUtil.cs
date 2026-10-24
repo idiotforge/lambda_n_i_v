@@ -55,6 +55,15 @@ internal static class MessageUtil
       Guild guild = message.Guild!;
       async Task<string> CleanWord(string word)
       {
+        if (word.StartsWith("http"))
+        {
+          // links
+          if (word.Contains("gif") || word.Contains("tenor"))
+          {
+            return "a gif";
+          }
+          return "a link";
+        }
         if (word.StartsWith('<'))
         {
           switch (word[1])
