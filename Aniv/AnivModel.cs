@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
-
-namespace Lambdaniv.Aniv;
+﻿namespace Lambdaniv.Aniv;
 
 public static class AnivModel
 {
@@ -12,7 +7,7 @@ public static class AnivModel
   private static int keySize;
   static AnivModel()
   {
-    LoadModel("./Aniv/textmodel.txt", 3);
+    LoadModel("./Aniv/textmodel.txt", 2);
   }
   static string Join(string a, string b)
   {
@@ -21,12 +16,8 @@ public static class AnivModel
   static void LoadModel(string filePath, int ks)
   {
     keySize = ks;
-    string body;
-    using (StreamReader sr = new(filePath))
-    {
-      body = sr.ReadToEnd();
-    }
-    var words = body.Split();
+    string body = File.ReadAllText(filePath);
+    string[] words = body.Split(' ');
     for (int i = 0; i < words.Length - keySize; i++)
     {
       var key = words.Skip(i).Take(keySize).Aggregate(Join);
@@ -84,8 +75,8 @@ public static class AnivModel
   }
   public static string MakeString()
   {
-    string sentence = Markov(20 + rand.Next() % 20).Replace("  ", " ");
-    if (sentence[0] == ' ')
+    string sentence = Markov(rand.Next() % 30 + 1).Replace("  ", " ");
+    if (sentence.StartsWith(' '))
     {
       sentence = sentence[1..];
     }
