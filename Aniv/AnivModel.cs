@@ -84,7 +84,7 @@ public static class AnivModel
   }
   public static string MakeString()
   {
-    string sentence = Markov(300).Replace("  ", " ");
+    string sentence = Markov(20 + rand.Next() % 20).Replace("  ", " ");
     if (sentence[0] == ' ')
     {
       sentence = sentence[1..];
