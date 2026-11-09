@@ -66,7 +66,7 @@ public class TTSCommands : CommandModule<CommandContext>
 
       await Context.Client.UpdateVoiceStateAsync(new(guildId, null));
 
-      throw;
+      return;
     }
 
     VoiceInstance voiceInstance = new(voiceClient);

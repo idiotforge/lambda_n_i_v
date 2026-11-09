@@ -101,7 +101,7 @@ internal static class MessageUtil
       string attachments = SpeakAttachments();
       if (attachments != string.Empty)
       {
-        cleaned += "with " + attachments;
+        cleaned += "with " + attachments + '.';
       }
       return cleaned[0..(cleaned.Length - 1)] + '.';
     }
