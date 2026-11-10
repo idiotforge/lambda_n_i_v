@@ -239,15 +239,10 @@ public class TTSCommands : CommandModule<CommandContext>
     }
     await Context.Message.ReplyAsync("invalid voice");
   }
-  [Command("debuggetuserpreference")]
-  public async void SetVoice(ulong userId)
+  [Command("voicelist")]
+  public async void VoiceList()
   {
-    if (LiteDbProvider.GetPreference(userId) is not { } up)
-    {
-      await ReplyAsync("not in db");
-      return;
-    }
-    await ReplyAsync($"voicename = {up.VoiceName}, pitch = {up.Pitch}, tempo = {up.Tempo}");
+    await Context.Message.ReplyAsync(string.Join('\n', TTSConfig.Voices));
   }
   [Command("kill")]
   public async void Kill()
@@ -262,7 +257,12 @@ public class TTSCommands : CommandModule<CommandContext>
 
     if (!voiceInstances.TryGetValue(guildId, out var voiceInstance) || voiceInstance is null)
     {
-      await Context.Message.ReplyAsync("not connected");
+      await Context.Message.ReplyAsync("not connected but will try anyway");
+      try
+      {
+        await Context.Client.UpdateVoiceStateAsync(new VoiceStateProperties(guildId, null));
+      }
+      catch { }
       return;
     }
 
