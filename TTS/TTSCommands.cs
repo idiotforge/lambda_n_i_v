@@ -116,19 +116,6 @@ public class TTSCommands : CommandModule<CommandContext>
     }
     voiceInstance.EnqueueAndPlay(source);
   }
-  [Command("test")]
-  public async void Test()
-  {
-    if (Context.Guild is not { } guild)
-    {
-      await Context.Message.ReplyAsync("not in a guild");
-      return;
-    }
-
-    ulong guildId = guild.Id;
-
-    Play(guildId, new FileSource(TTSConfig.SoundFolder + "test.mp3"));
-  }
   [Command("play")]
   public async void PlayFile(string url = "")
   {
@@ -146,7 +133,9 @@ public class TTSCommands : CommandModule<CommandContext>
     }
     if (Context.Message.Attachments.Count > 0)
     {
-      if (Context.Message.Attachments[0].ContentType?.StartsWith("audio") == true)
+      if (Context.Message.Attachments[0].ContentType?.StartsWith("audio") == true
+        || Context.Message.Attachments[0].ContentType?.StartsWith("video") == true
+        )
       {
         Play(guildId, new WebSource(Context.Message.Attachments[0].ProxyUrl));
         return;
@@ -163,7 +152,6 @@ public class TTSCommands : CommandModule<CommandContext>
     }
 
     ulong guildId = guild.Id;
-
     Play(guildId, new YTSource(text));
   }
   [Command("skip")]
